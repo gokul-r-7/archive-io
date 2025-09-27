@@ -1,0 +1,23 @@
+{
+  "glue_connection": "postgres_connection",
+  "legal_hold": false,
+  "retention_policy": 6,
+  "source_database": "postgres_databse_eeql",
+  "source_schema": "postgres_test_schema",
+  "source_table": [
+    {
+      "table_name": "products",
+      "condition": "Index < 20",
+      "query": "SELECT * FROM postgres_test_schema.products WHERE Index < 20"
+    },
+    {
+      "table_name": "leads",
+      "condition": "Index < 50"
+    },
+    {
+      "table_name": "customers"
+    }
+  ],
+  "triggered_by": "Gokul",
+  "triggered_by_email": "gokul@example.com"
+}
