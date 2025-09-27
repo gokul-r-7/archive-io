@@ -1,0 +1,218 @@
+{
+  "Comment": "Archival Flow State Machine (corrected Parameters vs Result warnings)",
+  "StartAt": "ArchiveJobsMap",
+  "States": {
+    "ArchiveJobsMap": {
+      "Type": "Map",
+      "ItemsPath": "$.archive_args",
+      "Parameters": {
+        "JobArgs.$": "$$.Map.Item.Value"
+      },
+      "Iterator": {
+        "StartAt": "RunArchiveGlueJob",
+        "States": {
+          "RunArchiveGlueJob": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::glue:startJobRun.sync",
+            "Parameters": {
+              "JobName": "archival-tf-dev",
+              "Arguments.$": "$.JobArgs"
+            },
+            "End": true
+          }
+        }
+      },
+      "ResultPath": "$.archive_results",
+      "Next": "ValidateJobsMap"
+    },
+    "ValidateJobsMap": {
+      "Type": "Map",
+      "ItemsPath": "$.archive_args",
+      "Parameters": {
+        "JobArgs.$": "$$.Map.Item.Value"
+      },
+      "Iterator": {
+        "StartAt": "RunValidateGlueJob",
+        "States": {
+          "RunValidateGlueJob": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::glue:startJobRun.sync",
+            "Parameters": {
+              "JobName": "validation-tf-dev",
+              "Arguments.$": "$.JobArgs"
+            },
+            "End": true
+          }
+        }
+      },
+      "ResultPath": "$.validate_results",
+      "Next": "TransformArchiveResults"
+    },
+    "TransformArchiveResults": {
+      "Type": "Map",
+      "ItemsPath": "$.archive_results",
+      "Parameters": {
+        "raw.$": "$$.Map.Item.Value"
+      },
+      "Iterator": {
+        "StartAt": "BuildArchiveJobObject",
+        "States": {
+          "BuildArchiveJobObject": {
+            "Type": "Pass",
+            "Parameters": {
+              "archive_job": {
+                "job_name": "archival",
+                "job_run_id.$": "$.raw.Id",
+                "status.$": "$.raw.JobRunState",
+                "start_time.$": "$.raw.StartedOn",
+                "end_time.$": "$.raw.CompletedOn",
+                "duration_seconds.$": "$.raw.ExecutionTime",
+                "script_args.$": "$.raw.Arguments"
+              }
+            },
+            "End": true
+          }
+        }
+      },
+      "ResultPath": "$.transformed_archive_jobs",
+      "Next": "TransformValidateResults"
+    },
+    "TransformValidateResults": {
+      "Type": "Map",
+      "ItemsPath": "$.validate_results",
+      "Parameters": {
+        "raw.$": "$$.Map.Item.Value"
+      },
+      "Iterator": {
+        "StartAt": "BuildValidateJobObject",
+        "States": {
+          "BuildValidateJobObject": {
+            "Type": "Pass",
+            "Parameters": {
+              "validate_job": {
+                "job_name": "validation",
+                "job_run_id.$": "$.raw.Id",
+                "status.$": "$.raw.JobRunState",
+                "start_time.$": "$.raw.StartedOn",
+                "end_time.$": "$.raw.CompletedOn",
+                "duration_seconds.$": "$.raw.ExecutionTime",
+                "script_args.$": "$.raw.Arguments"
+              }
+            },
+            "End": true
+          }
+        }
+      },
+      "ResultPath": "$.transformed_validate_jobs",
+      "Next": "BuildReportPayload"
+    },
+    "BuildReportPayload": {
+      "Type": "Pass",
+      "Parameters": {
+        "run_id.$": "$.run_id",
+        "timestamp.$": "$.timestamp",
+        "metadata": {
+          "timestamp.$": "$$.State.EnteredTime",
+          "airflow_run_id.$": "States.Format('stepfunctions_{}', $.run_id)",
+          "archive_jobs.$": "$.transformed_archive_jobs[*].archive_job",
+          "validate_jobs.$": "$.transformed_validate_jobs[*].validate_job"
+        }
+      },
+      "ResultPath": "$.report_input",
+      "Next": "CheckAllSucceeded"
+    },
+    "CheckAllSucceeded": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.report_input.metadata.archive_jobs[0].status",
+          "StringEquals": "FAILED",
+          "Next": "MarkFailed"
+        }
+      ],
+      "Default": "ReportGenerationLambda"
+    },
+    "MarkFailed": {
+      "Type": "Pass",
+      "Result": {
+        "dag_status": "failed"
+      },
+      "ResultPath": "$.dag_status",
+      "Next": "ReportGenerationLambda"
+    },
+    "ReportGenerationLambda": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "report_generation-tf-dev",
+        "Payload.$": "$.report_input"
+      },
+      "ResultPath": "$.report_result",
+      "Next": "BuildDDBItem"
+    },
+    "BuildDDBItem": {
+      "Type": "Pass",
+      "Parameters": {
+        "SourceSystemId": "dynamodb_test",
+        "MetadataType": "dynamodb_test",
+        "stepfunction_run_id.$": "$.report_input.metadata.airflow_run_id",
+        "created_date.$": "$.report_input.metadata.timestamp",
+        "run_id.$": "$.run_id",
+        "input_connection.$": "$.input_payload.glue_connection",
+        "input_legal_hold.$": "States.Format('{}', $.input_payload.legal_hold)",
+        "input_retention_policy.$": "States.Format('{}', $.input_payload.retention_policy)",
+        "input_schema_names.$": "$.input_payload.source_schema",
+        "input_table_names.$": "States.JsonToString($.input_payload.source_table)",
+        "input_warehouse": "s3://archival-io-227/iceberg_warehouse/archived_data",
+        "transformed_archive_jobs.$": "$.report_input.metadata.archive_jobs",
+        "transformed_validate_jobs.$": "$.report_input.metadata.validate_jobs",
+        "report_response.$": "$.report_result.Payload"
+      },
+      "ResultPath": "$.ddb_item",
+      "Next": "WriteToDynamoDB"
+    },
+    "WriteToDynamoDB": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::dynamodb:putItem",
+      "Parameters": {
+        "TableName": "archival-tf-dev",
+        "Item": {
+          "id": {
+            "S.$": "$.run_id"
+          },
+          "airflow_run_id": {
+            "S.$": "$.ddb_item.airflow_run_id"
+          },
+          "input_connection": {
+            "S.$": "$.ddb_item.input_connection"
+          },
+          "input_schema_names": {
+            "S.$": "$.ddb_item.input_schema_names"
+          },
+          "input_table_names": {
+            "S.$": "$.ddb_item.input_table_names"
+          },
+          "input_retention_policy": {
+            "S.$": "$.ddb_item.input_retention_policy"
+          },
+          "input_legal_hold": {
+            "S.$": "$.ddb_item.input_legal_hold"
+          },
+          "input_warehouse": {
+            "S.$": "$.ddb_item.input_warehouse"
+          },
+          "report_validation_report": {
+            "S.$": "$.ddb_item.report_response.validation_report"
+          },
+          "report_validation_summary_report": {
+            "S.$": "$.ddb_item.report_response.validation_summary_report"
+          },
+          "created_date": {
+            "S.$": "$.ddb_item.created_date"
+          }
+        }
+      },
+      "End": true
+    }
+  }
+}

@@ -1,0 +1,7 @@
+boto3
+PyYAML
+SQLAlchemy
+pymysql
+psycopg2-binary
+pymssql
+oracledb
