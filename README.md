@@ -1,11 +1,3 @@
-# archive-io
-
-
-Got it 👍 here’s the **full `README.md` file**, ready for copy-paste into your repo.
-
----
-
-```markdown
 # Archive-IO (AWS Terraform Project)
 
 Archive-IO is an AWS-based **data archival and validation workflow** deployed with **Terraform**.  
@@ -35,42 +27,42 @@ The project uses **API Gateway, Lambda, Glue, DynamoDB, Step Functions, S3, and 
 
 ## 📂 Project Structure
 
-```
-
 archive-io/
-├── terraform_scripts/          # Terraform IaC for all AWS resources
-│   ├── main.tf
-│   ├── variables.tf
-│   ├── outputs.tf
-│   ├── provider.tf
-│   ├── terraform.tfvars
-│   ├── deploy.sh               # Deployment script (dev/qa/prod)
-│   └── env/                    # Environment-specific variables
-│       ├── dev.tfvars
-│       ├── qa.tfvars
-│       └── prod.tfvars
+├── terraform_scripts/ # Terraform IaC for all AWS resources
+│ ├── main.tf
+│ ├── variables.tf
+│ ├── outputs.tf
+│ ├── provider.tf
+│ ├── terraform.tfvars
+│ ├── deploy.sh # Deployment script (dev/qa/prod)
+│ └── env/ # Environment-specific variables
+│ ├── dev.tfvars
+│ ├── qa.tfvars
+│ └── prod.tfvars
 │
-├── lambda_functions/           # AWS Lambda source code
-│   ├── archival_flow_trigger/
-│   │   └── handler.py
-│   └── report_generation/
-│       └── handler.py
+├── lambda_functions/ # AWS Lambda source code
+│ ├── archival_flow_trigger/
+│ │ └── handler.py
+│ └── report_generation/
+│ └── handler.py
 │
-├── glue_jobs/                  # AWS Glue ETL job scripts
-│   ├── archival/
-│   │   └── archival_job.py
-│   ├── validation/
-│   │   └── validation_job.py
-│   └── purge/
-│       └── purge_job.py
+├── glue_jobs/ # AWS Glue ETL job scripts
+│ ├── archival/
+│ │ └── archival_job.py
+│ ├── validation/
+│ │ └── validation_job.py
+│ └── purge/
+│ └── purge_job.py
 │
-├── input_payloads/             # Sample input payloads for API Gateway
-│   └── archival_input_payload.json
+├── input_payloads/ # Sample input payloads for API Gateway
+│ └── archival_input_payload.json
 │
-└── logs/                       # CloudWatch / debugging logs
+└── logs/ # CloudWatch / debugging logs
 └── clpidwatch/
 
-````
+
+
+
 
 ---
 
@@ -88,105 +80,34 @@ archive-io/
 
 ```bash
 cd terraform_scripts
-````
 
-2. Run the deployment script for the target environment (`dev`, `qa`, `prod`):
+2. Run the deployment script for the target environment (dev, qa, prod):
 
-```bash
 ./deploy.sh dev
-```
 
 3. Terraform will provision:
 
-   * API Gateway
-   * Lambda functions
-   * Glue Jobs
-   * Step Functions
-   * DynamoDB tables
-   * IAM roles
-   * S3 buckets
-   * Glue connections
+API Gateway
 
----
+Lambda functions
 
-## ▶️ Running the Workflow
+Glue Jobs
 
-1. Go to **API Gateway** in AWS Console.
-2. Select the resource `archival` → `POST` method.
-3. Use the following payload (sample provided in `input_payloads/archival_input_payload.json`):
+Step Functions
 
-```json
-{
-  "SourceSystemId": "INT024_TEST_DATA",
-  "TargetSystem": "AWS_Athena",
-  "ArchiveType": "Full",
-  "Tables": ["EMPLOYEES", "SALARIES"]
-}
-```
+DynamoDB tables
 
-4. This triggers:
+IAM roles
 
-   * **Step Function `archival_flow`**
-   * Runs **Glue Job (archival)** → archives data into Iceberg
-   * Runs **Glue Job (validation)** → validates source vs target
-   * Runs **Lambda (report_generation)** → creates a PDF in S3
-   * Updates **DynamoDB** with metadata
-   * Sends logs to **CloudWatch**
+S3 buckets
 
----
+Glue connections
 
-## 📊 Outputs
 
-* **S3** → Archived data + PDF reports
-* **DynamoDB** → Metadata storage
-* **CloudWatch** → Logs for Lambda, Glue, Step Functions
-* **API Gateway URL** → Entry point for triggering archival workflow
+Running the Workflow
 
----
+Go to API Gateway in AWS Console.
 
-## 🔒 IAM Roles
+Select the resource archival → POST method.
 
-The following IAM roles are created:
-
-* `lambda_role`
-* `glue_role`
-* `step_function_role`
-
-Each role has least-privilege access for its respective service.
-
----
-
-## 🌍 Environments
-
-* **Development** (`dev`)
-* **Quality Assurance** (`qa`)
-* **Production** (`prod`)
-
-Switch environments using:
-
-```bash
-./deploy.sh qa
-```
-
----
-
-## 📝 Notes
-
-* All infrastructure is fully managed by **Terraform**.
-* Logs are centralized in **CloudWatch** under `clpidwatch`.
-* The project is modular and supports adding new Glue jobs or Lambda functions easily.
-
----
-
-## 👤 Author
-
-**Gokul R.**
-
-```
-
----
-
-✅ This is a **ready-to-use README.md** that matches your existing folder structure.  
-
-Do you also want me to include an **architecture diagram (workflow picture)** section in the README, so it looks more like an open-source project?
-```
+Use the following payload (sample provided in input_payloads/archival_input_payload.json)
