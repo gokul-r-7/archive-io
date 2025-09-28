@@ -103,7 +103,7 @@ cd terraform_scripts
 
 ---
 
-## ▶️ Running the Workflow
+##  Running the Workflow
 
 1. Go to **API Gateway** in AWS Console.
 2. Select the resource `archival` → `POST` method.
