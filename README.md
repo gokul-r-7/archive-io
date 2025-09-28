@@ -1,4 +1,4 @@
-Of course 👍 — here’s the **full `README.md` file** exactly formatted, so you can copy–paste directly into your repo:
+Archive-IO
 
 ---
 
@@ -11,7 +11,7 @@ The project uses **API Gateway, Lambda, Glue, DynamoDB, Step Functions, S3, and 
 
 ---
 
-## 🚀 Features
+## Features
 
 * **API Gateway** → Entry point (`archival_flow` resource)
 * **Step Functions** → Orchestrates the archival → validation → reporting flow
@@ -63,9 +63,7 @@ archive-io/
 │
 ├── input_payloads/             # Sample input payloads for API Gateway
 │   └── archival_input_payload.json
-│
-└── logs/                       # CloudWatch / debugging logs
-    └── clpidwatch/
+
 ```
 
 ---
@@ -113,11 +111,29 @@ cd terraform_scripts
 
 ```json
 {
-  "SourceSystemId": "INT024_TEST_DATA",
-  "TargetSystem": "AWS_Athena",
-  "ArchiveType": "Full",
-  "Tables": ["EMPLOYEES", "SALARIES"]
+  "glue_connection": "postgres_connection",
+  "legal_hold": false,
+  "retention_policy": 6,
+  "source_database": "postgres_databse_eeql",
+  "source_schema": "postgres_test_schema",
+  "source_table": [
+    {
+      "table_name": "products",
+      "condition": "Index < 20",
+      "query": "SELECT * FROM postgres_test_schema.products WHERE Index < 20"
+    },
+    {
+      "table_name": "leads",
+      "condition": "Index < 50"
+    },
+    {
+      "table_name": "customers"
+    }
+  ],
+  "triggered_by": "Gokul",
+  "triggered_by_email": "gokul@example.com"
 }
+
 ```
 
 4. This triggers:
@@ -131,7 +147,7 @@ cd terraform_scripts
 
 ---
 
-## 📊 Outputs
+##  Outputs
 
 * **S3** → Archived data + PDF reports
 * **DynamoDB** → Metadata storage
@@ -140,7 +156,7 @@ cd terraform_scripts
 
 ---
 
-## 🔒 IAM Roles
+## IAM Roles
 
 The following IAM roles are created:
 
@@ -152,7 +168,7 @@ Each role has least-privilege access for its respective service.
 
 ---
 
-## 🌍 Environments
+## Environments
 
 * **Development** (`dev`)
 * **Quality Assurance** (`qa`)
@@ -161,7 +177,7 @@ Each role has least-privilege access for its respective service.
 Switch environments using:
 
 ```bash
-./deploy.sh qa
+./deploy.sh dev
 ```
 
 ---
@@ -174,8 +190,4 @@ Switch environments using:
 
 ---
 
-## 👤 Author
 
-## **Gokul R.**
-
-Would you like me to also **add a Mermaid diagram** (architecture flow chart) in this `README.md` so that GitHub renders a nice workflow diagram (API Gateway → Step Function → Glue → Lambda → S3/DynamoDB)?
