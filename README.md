@@ -31,7 +31,7 @@ The project uses **API Gateway, Lambda, Glue, DynamoDB, Step Functions, S3, and 
 
 ---
 
-## 📂 Project Structure
+##  Project Structure
 
 ```
 archive-io/
@@ -68,7 +68,7 @@ archive-io/
 
 ---
 
-## ⚙️ Prerequisites
+##  Prerequisites
 
 * [Terraform](https://developer.hashicorp.com/terraform/downloads)
 * [Docker Desktop](https://www.docker.com/products/docker-desktop) (must be **installed and running**)
@@ -76,7 +76,7 @@ archive-io/
 
 ---
 
-## 🛠️ Deployment
+##  Deployment
 
 1. Navigate to the `terraform_scripts` folder:
 
@@ -182,12 +182,6 @@ Switch environments using:
 
 ---
 
-## 📝 Notes
 
-* All infrastructure is fully managed by **Terraform**.
-* Logs are centralized in **CloudWatch** under `clpidwatch`.
-* The project is modular and supports adding new Glue jobs or Lambda functions easily.
-
----
 
 
